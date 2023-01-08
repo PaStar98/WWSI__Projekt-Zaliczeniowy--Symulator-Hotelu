@@ -1,4 +1,5 @@
 #include <iostream>
+#include <random>
 
 using namespace std;
 
@@ -6,10 +7,10 @@ using namespace std;
 struct Pokoj {
     string imie_goscia = "Niezarezerwowany";
     string nazwisko_goscia = "Niezarezerwowany";
-    int liczba_dni_rezerwacji = NULL;
-    int liczba_osob_w_pokoju = NULL;
+    int liczba_dni_rezerwacji = 0;
+    int liczba_osob_w_pokoju = 0;
     double cena_za_dobe = 300.00;
-    double cena_calkowita = NULL;
+    double cena_calkowita = 0;
     bool czy_pokoj_wolny = true;
 };
 
@@ -33,6 +34,56 @@ Pokoj wpisz_dane_nowego_goscia(int liczba_pokoi) {
     --liczba_pokoi;
 
     return pokoj;
+}
+
+int wylosuj_liczbe(int min, int max) {
+    default_random_engine generator(unsigned(time(0)));
+    uniform_real_distribution<> losowa(min, max);
+    return losowa(generator);
+}
+
+void gra_w_losowanie(int min, int max) {
+    //todo: handle +50%, -20% discount to room's price
+    char wybor_usera;
+    int wybor_liczby;
+
+    cout << "Czy chcesz zagrac w gre?\n";
+    cout << "Jesli wygrasz zaplacisz za pobyt w hotelu 50% mniej...\n";
+    cout << "Jesli przegrasz zaplacisz za pobyt w hotelu 20% wiecej...\n";
+    cout << "<t> - tak, <n> - nie: ";
+    cin >> wybor_usera;
+
+    do {
+        if (wybor_usera == 't') {
+            int wylosowana_liczba = wylosuj_liczbe(min, max);
+
+            cout << "Wybierz liczbe z przedzialu od " << min << ".. " << max << ": ";
+            cin >> wybor_liczby;
+            //temp
+            cout << "Wybrana liczba: " << wybor_liczby << endl;
+            cout << "Wylosowana liczba: " << wylosowana_liczba << endl;
+            //temp
+
+            if (wybor_liczby == wylosowana_liczba) {
+                cout << "Gratulacje, udalo Ci sie zgadnac i otrzymujesz rabat w wysokosci 50%!\n";
+                cout << "Zyczymy milego pobytu w naszym hotelu :)\n";
+            }
+            else {
+                cout << "Niestety, nie udalo sie zgadnac.\n";
+                cout << "Za pobyt w hotelu zaplacisz 20% wiecej :(\n";
+            }
+            break;
+        }
+        else if (wybor_usera == 'n') {
+            cout << "Wybrales pominiecie gry. Dokonaj rezerwacji. Zyczymy milego pobytu w hotelu.\n";
+        }
+        else {
+            cout << "Program nie obsluguje opcji, ktora zostala przez Ciebie wybrana - <"
+                << wybor_usera
+                << ">, obsluga przyciskow <t> - tak, <n> - nie\n";
+            cin >> wybor_usera;
+        }
+    } while (wybor_usera != 'n');
 }
 
 void zapisz_rezerwacje_w_bazie(const Pokoj& pokoj, Pokoj pokoje[], int n) {
@@ -59,6 +110,14 @@ void pokaz_pokoj(const Pokoj& pokoj) {
 void pokaz_pokoje(const Pokoj pokoje[], int n) {
     for (int i = 0; i < n; i++) {
         pokaz_pokoj(pokoje[i]);
+    }
+}
+
+void pokaz_wolne_pokoje(const Pokoj pokoje[], int n) {
+    for (int i = 0; i < n; i++) {
+        if (pokoje[i].czy_pokoj_wolny) {
+            pokaz_pokoj(pokoje[i]);
+        }
     }
 }
 
@@ -111,10 +170,11 @@ int main() {
             
 
         if (wybor_usera == 't') {
+            gra_w_losowanie(1, 10);
+
             Pokoj nowa_rezerwacja = wpisz_dane_nowego_goscia(liczba_zarezerwowanych_pokoi);
             zapisz_rezerwacje_w_bazie(nowa_rezerwacja, pokoje, liczba_zarezerwowanych_pokoi);
             ++liczba_zarezerwowanych_pokoi;
-           
         }
         else if (wybor_usera == 'n') {
             cout << "Dziekujemy za skorzystanie z naszych uslug. Do zobaczenia!\n";
@@ -122,10 +182,14 @@ int main() {
         else {
             cout << "Program nie obsluguje opcji, ktora zostala wybrana - "
                 << wybor_usera
-                << ". Czy chodzilo Ci o <t> lub <n>?\n";
+                << ". Dostepne mozliwosci - <t> <n>: \n";
         }
     } while (wybor_usera != 'n');
 
     sortowanie_pokoi_wzgledem_ceny(pokoje, liczba_zarezerwowanych_pokoi);
-    pokaz_pokoje(pokoje, liczba_zarezerwowanych_pokoi);
+    pokaz_pokoje(pokoje, wszystkie_dostepne_pokoje);
+
+    cout << "**********************************************************************\n";
+
+    //pokaz_wolne_pokoje(pokoje, wszystkie_dostepne_pokoje);
 }
