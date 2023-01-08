@@ -3,7 +3,6 @@
 
 using namespace std;
 
-
 struct Pokoj {
     string imie_goscia = "Niezarezerwowany";
     string nazwisko_goscia = "Niezarezerwowany";
@@ -15,7 +14,7 @@ struct Pokoj {
 };
 
 
-Pokoj wpisz_dane_nowego_goscia(int liczba_pokoi) {
+Pokoj wpisz_dane_nowego_goscia(int liczba_pokoi, bool& czy_gral, bool& czy_wygral) {
     Pokoj pokoj;
 
     cout << "-------- Panel Rezerwacji --------\n";
@@ -29,7 +28,16 @@ Pokoj wpisz_dane_nowego_goscia(int liczba_pokoi) {
     cin >> pokoj.liczba_osob_w_pokoju;
     cout << "----------------------------------\n\n";
 
-    pokoj.cena_calkowita = (pokoj.cena_za_dobe * pokoj.liczba_dni_rezerwacji);
+    if (czy_gral && czy_wygral) { // cena calkowita zmniejszona o 50% przez wygrana w grze
+        pokoj.cena_calkowita = (pokoj.cena_za_dobe * pokoj.liczba_dni_rezerwacji) * 0.5;
+    }
+    else if (czy_gral && !czy_wygral) { // cena calkowita zwiekszona o 20% przez przegrana w grze
+        pokoj.cena_calkowita = (pokoj.cena_za_dobe * pokoj.liczba_dni_rezerwacji) * 1.2;
+    }
+    else if (!czy_gral) { // cena standardowa za nie branie udzialu w grze
+        pokoj.cena_calkowita = (pokoj.cena_za_dobe * pokoj.liczba_dni_rezerwacji);
+    }
+    
     pokoj.czy_pokoj_wolny = false;
     --liczba_pokoi;
 
@@ -42,7 +50,7 @@ int wylosuj_liczbe(int min, int max) {
     return losowa(generator);
 }
 
-void gra_w_losowanie(int min, int max) {
+void gra_w_losowanie(int min, int max, bool& czy_gral, bool& czy_wygral) {
     //todo: handle +50%, -20% discount to room's price
     char wybor_usera;
     int wybor_liczby;
@@ -56,15 +64,15 @@ void gra_w_losowanie(int min, int max) {
     do {
         if (wybor_usera == 't') {
             int wylosowana_liczba = wylosuj_liczbe(min, max);
+            czy_gral = true;
 
             cout << "Wybierz liczbe z przedzialu od " << min << ".. " << max << ": ";
             cin >> wybor_liczby;
-            //temp
             cout << "Wybrana liczba: " << wybor_liczby << endl;
             cout << "Wylosowana liczba: " << wylosowana_liczba << endl;
-            //temp
 
             if (wybor_liczby == wylosowana_liczba) {
+                czy_wygral = true;
                 cout << "Gratulacje, udalo Ci sie zgadnac i otrzymujesz rabat w wysokosci 50%!\n";
                 cout << "Zyczymy milego pobytu w naszym hotelu :)\n";
             }
@@ -72,6 +80,7 @@ void gra_w_losowanie(int min, int max) {
                 cout << "Niestety, nie udalo sie zgadnac.\n";
                 cout << "Za pobyt w hotelu zaplacisz 20% wiecej :(\n";
             }
+
             break;
         }
         else if (wybor_usera == 'n') {
@@ -157,10 +166,13 @@ int main() {
     int liczba_zarezerwowanych_pokoi = 0;
     char wybor_usera = 'n';
     bool pierwsze_uruchomienie_programu = true;
+    bool czy_gral_w_gre = false;
+    bool czy_wygral_gre = false;
+
 
     do {
         if (pierwsze_uruchomienie_programu) {
-            cout << "Witaj w Hotelu, czy chcesz zarezerwowac pokoj? <t> <n>: ";
+            cout << "Witaj w HOTELU, czy chcesz zarezerwowac pokoj? <t> <n>: ";
             pierwsze_uruchomienie_programu = false;
         }
         else {
@@ -170,9 +182,10 @@ int main() {
             
 
         if (wybor_usera == 't') {
-            gra_w_losowanie(1, 10);
+            gra_w_losowanie(1, 10, czy_gral_w_gre, czy_wygral_gre);
+            cout << czy_gral_w_gre << ", " << czy_wygral_gre;
 
-            Pokoj nowa_rezerwacja = wpisz_dane_nowego_goscia(liczba_zarezerwowanych_pokoi);
+            Pokoj nowa_rezerwacja = wpisz_dane_nowego_goscia(liczba_zarezerwowanych_pokoi, czy_gral_w_gre, czy_wygral_gre);
             zapisz_rezerwacje_w_bazie(nowa_rezerwacja, pokoje, liczba_zarezerwowanych_pokoi);
             ++liczba_zarezerwowanych_pokoi;
         }
@@ -186,10 +199,67 @@ int main() {
         }
     } while (wybor_usera != 'n');
 
-    sortowanie_pokoi_wzgledem_ceny(pokoje, liczba_zarezerwowanych_pokoi);
-    pokaz_pokoje(pokoje, wszystkie_dostepne_pokoje);
 
-    cout << "**********************************************************************\n";
+    do {
+        cout << "-----------------------------------------------------------------\n";
+        cout << "Po rezerwacji przedstawiam Ci rozne mozliwosci jakich mozesz uzyc: \n";
+        cout << "<s> Sortowanie pokoi, \n";
+        cout << "<p> Pokazanie zajetych lub wolnych pokoi, \n";
+        cout << "<w> Wyjscie z programu \n";
+        cout << "Czy ktoras opcja Cie interesuje?: ";
+        cin >> wybor_usera;
+        cout << "-----------------------------------------------------------------\n";
 
-    //pokaz_wolne_pokoje(pokoje, wszystkie_dostepne_pokoje);
+        if (wybor_usera == 's') {
+            cout << "Wybrales sortowanie\n";
+            cout << "Sortowanie po cenie <c>\n";
+            cout << "Sortowanie po dniach rezerwacji <r>\n";
+            cout << "Sortowanie po liczbie osob na pokoju <l>\n";
+            cout << "Wybierz: ";
+            cin >> wybor_usera;
+
+            if (wybor_usera == 'c') {
+                sortowanie_pokoi_wzgledem_ceny(pokoje, liczba_zarezerwowanych_pokoi);
+                pokaz_pokoje(pokoje, liczba_zarezerwowanych_pokoi);
+            }
+            else if (wybor_usera == 'r') {
+                sortowanie_pokoi_wzgledem_dni_rezerwacji(pokoje, liczba_zarezerwowanych_pokoi);
+                pokaz_pokoje(pokoje, liczba_zarezerwowanych_pokoi);
+            }
+            else if (wybor_usera == 'l') {
+                sortowanie_pokoi_wzgledem_ilosc_osob(pokoje, liczba_zarezerwowanych_pokoi);
+                pokaz_pokoje(pokoje, liczba_zarezerwowanych_pokoi);
+            }
+            else {
+                cout << "Wybrales nieprawidlowy przycisk: " << wybor_usera << endl;
+            }
+        }
+        else if (wybor_usera == 'p') {
+            cout << "Wybrales wyswietlanie pokoi\n";
+            cout << "<w> Pokaz wolne pokoje\n";
+            cout << "<z> Pokaz zajete pokoje\n";
+            cout << "Wybierz: ";
+            cin >> wybor_usera;
+
+            if (wybor_usera == 'w') {
+                pokaz_wolne_pokoje(pokoje, wszystkie_dostepne_pokoje);
+            }
+            else if (wybor_usera == 'z') {
+                pokaz_pokoje(pokoje, liczba_zarezerwowanych_pokoi);
+            }
+            else {
+                cout << "Wybrales nieprawidlowy przycisk: " << wybor_usera << endl;
+            }
+        }
+        else if (wybor_usera == 'w') {
+            cout << "Dziekujemy za skorzystanie z naszego programu!\n";
+            break;
+        }
+        else {
+            cout << "Niepoprawny przycisk - <" 
+                << wybor_usera 
+                << ">, program nie moze obsluzyc zadania, wybierz sposrod tych przyciskow: <s>, <p> lub <w>: ";
+            cin >> wybor_usera;
+        }
+    } while (wybor_usera != 'n');
 }
